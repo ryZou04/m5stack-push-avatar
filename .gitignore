@@ -1,32 +1,11 @@
-# Prerequisites
-*.d
+# 個人情報
+config.h
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# macOS
+.DS_Store
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# Arduino ビルドキャッシュ
+build/
+*.elf
+*.bin
+*.hex

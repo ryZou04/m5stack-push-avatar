@@ -1,0 +1,31 @@
+// config.h.example
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// WiFi設定
+#define WIFI_SSID       "your-ssid"
+#define WIFI_PASSWORD   "your-password"
+
+// サーバー設定
+#define SERVER_URL      "http://192.168.1.x:5000"
+
+// スピーカー設定
+#define SPEAKER_VOLUME  200
+
+// マイク設定
+#define MIC_SAMPLE_RATE           16000
+#define MIC_MAX_RECORD_SECONDS    8
+#define MIC_TRIGGER_RMS           0.0095f
+#define MIC_TRIGGER_HOLD_MS       280
+#define MIC_SILENCE_RMS           0.0020f
+#define MIC_SILENCE_HOLD_MS       1500
+#define MIC_FRAME_SAMPLES         1600
+#define MIC_MIN_VALID_SAMPLES     5200
+#define MIC_VOICE_CONFIRM_RMS     0.004f
+#define PRE_TRIGGER_BUFFER_SAMPLES 4800
+
+// ディスプレイ
+#define DISPLAY_BRIGHTNESS  70
+
+#endif
