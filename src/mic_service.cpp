@@ -1,4 +1,4 @@
-#include <M5CoreS3.h>
+#include <M5Unified.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -49,22 +49,53 @@ static int16_t pre_trigger_buf[PRE_TRIGGER_BUFFER_SAMPLES];
 static size_t  pre_buf_write = 0;
 static bool    pre_buf_full  = false;
 
-static float calcRmsNorm(const int16_t* data, size_t n) {
+static inline float calcRmsNorm(const int16_t* data, size_t n) {
     if (n == 0) return 0.0f;
-    double sum = 0.0;
+    float sum = 0.0f; 
     for (size_t i = 0; i < n; ++i) {
         float x = (float)data[i] / 32768.0f;
         sum += x * x;
     }
-    return sqrt(sum / (double)n);
+    return sqrtf(sum / (float)n);       
 }
 
 static bool sendAudioToServer(int16_t* audio_data, size_t sample_count);
 
+static bool isValidAudio(int16_t* audio_data, size_t sample_count) {
+    if (sample_count < MIC_MIN_VALID_SAMPLES) {
+        Serial.printf("[MIC] Too short (%u samples), discarding\n", (unsigned)sample_count);
+        return false;
+    }
+    size_t check_samples = MIC_SAMPLE_RATE / 2;
+    if (sample_count > check_samples) {
+        float early_rms = calcRmsNorm(audio_data, check_samples);
+        if (early_rms < MIC_VOICE_CONFIRM_RMS) {
+            Serial.printf("[MIC] No voice (early RMS=%.3f), discarding\n", early_rms);
+            return false;
+        }
+    }
+    return true;
+}
+
+static uint8_t* buildWav(int16_t* audio_data, size_t sample_count, size_t& wav_size) {
+    WAVHeader header;
+    header.data_size = sample_count * 2;
+    header.file_size = header.data_size + sizeof(WAVHeader) - 8;
+
+    wav_size = sizeof(WAVHeader) + header.data_size;
+    uint8_t* wav = (uint8_t*)ps_malloc(wav_size);
+    if (!wav) {
+        Serial.println("[MIC] WAV buffer alloc failed");
+        return nullptr;
+    }
+    memcpy(wav, &header, sizeof(WAVHeader));
+    memcpy(wav + sizeof(WAVHeader), audio_data, header.data_size);
+    return wav;
+}
+
 bool initMicrophone() {
     Serial.println("[MIC] Initializing microphone...");
 
-    // マイク起動前にスピーカーを停止（CoreS3は同時利用不可）
     if (M5.Speaker.isRunning()) {
         M5.Speaker.end();
         Serial.println("[MIC] Speaker stopped before Mic.begin()");
@@ -113,7 +144,6 @@ void updateMicrophone() {
     float rms = calcRmsNorm(frame, got);
     uint32_t now = millis();
 
-    // IDLE/TRIGGERING 中だけリングバッファに積む
     if (mic_state == MIC_IDLE || mic_state == MIC_TRIGGERING) {
         for (size_t i = 0; i < got; i++) {
             pre_trigger_buf[pre_buf_write] = frame[i];
@@ -133,8 +163,6 @@ void updateMicrophone() {
         case MIC_TRIGGERING:
             if (rms > MIC_TRIGGER_RMS) {
                 if (now - trigger_start_ms >= MIC_TRIGGER_HOLD_MS) {
-
-                    // リングバッファの内容を録音バッファ先頭にコピー
                     if (pre_buf_full) {
                         size_t older = PRE_TRIGGER_BUFFER_SAMPLES - pre_buf_write;
                         memcpy(record_buffer,
@@ -150,11 +178,8 @@ void updateMicrophone() {
                                pre_buf_write * sizeof(int16_t));
                         recorded_samples = pre_buf_write;
                     }
-
-                    // リングバッファをリセット
                     pre_buf_write = 0;
                     pre_buf_full  = false;
-
                     silence_start_ms = 0;
                     mic_state = MIC_RECORDING;
                     setFaceExpression(FACE_LISTENING);
@@ -191,9 +216,7 @@ void updateMicrophone() {
 
                 bool ok = sendAudioToServer(record_buffer, recorded_samples);
                 Serial.printf("[MIC] Send/Process result=%s\n", ok ? "OK" : "NG");
-                if (!ok) {
-                    setFaceExpression(FACE_IDLE);
-                }
+                if (!ok) setFaceExpression(FACE_IDLE);
                 mic_state = MIC_IDLE;
             }
             break;
@@ -209,64 +232,34 @@ static bool sendAudioToServer(int16_t* audio_data, size_t sample_count) {
         Serial.println("[MIC] WiFi disconnected");
         return false;
     }
+    if (!isValidAudio(audio_data, sample_count)) return false;
 
-    // 短すぎる音声は破棄
-    if (sample_count < MIC_MIN_VALID_SAMPLES) {
-        Serial.printf("[MIC] Too short (%u samples), discarding\n",
-                      (unsigned)sample_count);
-        return false;
-    }
-
-    // 録音開始直後0.5秒のRMS確認（ノイズ判定）
-    size_t check_samples = MIC_SAMPLE_RATE / 2;
-    if (sample_count > check_samples) {
-        float early_rms = calcRmsNorm(audio_data, check_samples);
-        if (early_rms < MIC_VOICE_CONFIRM_RMS) {
-            Serial.printf("[MIC] No voice (early RMS=%.3f), discarding\n", early_rms);
-            return false;
-        }
-    }
-
-    WAVHeader header;
-    header.data_size = sample_count * 2;
-    header.file_size = header.data_size + sizeof(WAVHeader) - 8;
-
-    size_t wav_size = sizeof(WAVHeader) + header.data_size;
-    uint8_t* wav = (uint8_t*)ps_malloc(wav_size);
-    if (!wav) {
-        Serial.println("[MIC] WAV buffer alloc failed");
-        return false;
-    }
-
-    memcpy(wav, &header, sizeof(WAVHeader));
-    memcpy(wav + sizeof(WAVHeader), audio_data, header.data_size);
-
-    HTTPClient http;
-    String url = String(SERVER_URL) + "/speech/transcribe";
-    http.begin(url);
-    http.addHeader("Content-Type", "audio/wav");
-    http.setTimeout(30000);
+    size_t wav_size = 0;
+    uint8_t* wav = buildWav(audio_data, sample_count, wav_size);
+    if (!wav) return false;
 
     Serial.printf("[MIC] WAV: samples=%u bytes=%u sr=%u\n",
                   (unsigned)sample_count, (unsigned)wav_size, (unsigned)MIC_SAMPLE_RATE);
-    storeLastRecording(wav, wav_size);  
-        // MCPモード時はAPIに送らず終了
+
+    storeLastRecording(wav, wav_size);
     if (isMcpMode()) {
-        Serial.println("[MIC] MCP mode: skip transcribe");
-        setFaceExpression(FACE_IDLE);
+        Serial.println("[MIC] MCP mode: stored, skip transcribe");
         free(wav);
-        http.end();
+        setFaceExpression(FACE_IDLE);
         return true;
-    }           
+    }
+
+    HTTPClient http;
+    http.begin(serverUrl + "/speech/transcribe");
+    http.addHeader("Content-Type", "audio/wav");
+    http.setTimeout(HTTP_TIMEOUT_STT);
+
     int code = http.sendRequest("POST", wav, wav_size);
     free(wav);
 
     if (code != HTTP_CODE_OK) {
-        String errPayload = http.getString();
-        Serial.printf("[MIC] /speech/transcribe HTTP=%d\n", code);
-        if (errPayload.length() > 0) {
-            Serial.printf("[MIC] Error body: %s\n", errPayload.c_str());
-        }
+        Serial.printf("[MIC] /speech/transcribe HTTP=%d body=%s\n",
+                      code, http.getString().c_str());
         http.end();
         return false;
     }
@@ -280,13 +273,10 @@ static bool sendAudioToServer(int16_t* audio_data, size_t sample_count) {
         return false;
     }
 
-    if (!doc["success"]) return false;
     const char* transcript = doc["transcript"] | "";
-    if (strlen(transcript) == 0) return false;
+    if (!doc["success"] || strlen(transcript) == 0) return false;
 
-    Serial.print("[MIC] Transcript: ");
-    Serial.println(transcript);
-
+    Serial.printf("[MIC] Transcript: %s\n", transcript);
     sendChatRequest(transcript);
     return true;
 }

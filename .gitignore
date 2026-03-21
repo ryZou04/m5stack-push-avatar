@@ -4,8 +4,7 @@ config.h
 # macOS
 .DS_Store
 
-# Arduino ビルドキャッシュ
-build/
-*.elf
-*.bin
-*.hex
+# PlatformIO 
+.pio/
+
+.vscode/

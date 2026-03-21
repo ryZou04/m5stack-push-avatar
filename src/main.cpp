@@ -1,4 +1,6 @@
-#include <M5CoreS3.h>
+#include <Arduino.h> 
+
+#include <M5Unified.h>
 #include <WiFi.h>  
 #include "http_server.h" 
 #include "types.h"   

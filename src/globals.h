@@ -19,5 +19,6 @@ extern String interrupted_voice_url;
 
 // サーバーから時刻をみる
 extern int serverHour;
-
+// 接続中ネットワークに対応したサーバーURL（wifi_manager で設定）
+extern String serverUrl;
 #endif

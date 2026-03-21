@@ -4,7 +4,7 @@
 
 #include "face_service.h"
 #include "globals.h"
-#include <M5CoreS3.h>
+#include <M5Unified.h>
 
 Avatar avatar;
 

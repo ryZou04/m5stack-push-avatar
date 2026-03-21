@@ -1,4 +1,4 @@
-#include <M5CoreS3.h>
+#include <M5Unified.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <math.h>
@@ -56,13 +56,13 @@ void updateLipSync() {
         return;
     }
 
-    // RMS計算（二乗平均平方根）
-    double sum = 0.0;
+    // RMS計算
+    float sum = 0.0f; 
     for (size_t i = 0; i < samples; i++) {
         float v = (float)pcm[i] / 32768.0f;
         sum += v * v;
     }
-    float rms = sqrtf((float)(sum / samples));
+    float rms = sqrtf(sum / (float)samples); 
 
     // RMS → 口の開き具合（0.0〜1.0）にマッピング
     // VOICEVOXの音声はRMS 0.01〜0.15くらいの範囲
@@ -137,7 +137,7 @@ bool downloadVoice(const String& url, uint8_t** outData, size_t* outSize) {
     Serial.println(url);
 
     http.begin(url);
-    http.setTimeout(10000);
+    http.setTimeout(HTTP_TIMEOUT_DOWNLOAD);
     int httpCode = http.GET();
 
     if (httpCode != HTTP_CODE_OK) {

@@ -15,3 +15,4 @@ String interrupted_voice_url = "";
 
 //　サーバー時刻
 int serverHour = -1;  // -1 = 未取得
+String serverUrl = "";  // wifi_manager.cpp の connectWiFi() でセット

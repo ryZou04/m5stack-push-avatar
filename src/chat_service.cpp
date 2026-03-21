@@ -1,4 +1,4 @@
-#include <M5CoreS3.h>
+#include <M5Unified.h>
 #include <WiFi.h>        
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -11,7 +11,7 @@ void sendChatRequest(const char* text){
     if (WiFi.status() != WL_CONNECTED) return;
 
     HTTPClient http;
-    String chatUrl = String(SERVER_URL) + "/chat";
+    String chatUrl = serverUrl + "/chat";
 
     StaticJsonDocument<512> req;
     req["text"] = text;
@@ -25,7 +25,7 @@ void sendChatRequest(const char* text){
 
     http.begin(chatUrl);
     http.addHeader("Content-Type", "application/json");
-    http.setTimeout(30000);
+    http.setTimeout(HTTP_TIMEOUT_CHAT); 
 
     int code = http.POST(body);
 
@@ -66,9 +66,9 @@ void syncServerHour() {
     if (WiFi.status() != WL_CONNECTED) return;
 
     HTTPClient http;
-    String url = String(SERVER_URL) + "/time";
+    String url = serverUrl + "/time";
     http.begin(url);
-    http.setTimeout(5000);
+    http.setTimeout(HTTP_TIMEOUT_SHORT);
 
     int code = http.GET();
     if (code == HTTP_CODE_OK) {

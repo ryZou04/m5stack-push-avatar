@@ -1,4 +1,4 @@
-#include <M5CoreS3.h>
+#include <M5Unified.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -12,10 +12,10 @@ void checkAndEnqueueNotification() {
     if (WiFi.status() != WL_CONNECTED) return;
 
     HTTPClient http;
-    String pendingUrl = String(SERVER_URL) + "/notify/pending";
+    String pendingUrl = serverUrl + "/notify/pending";
 
     http.begin(pendingUrl);
-    http.setTimeout(5000);
+    http.setTimeout(HTTP_TIMEOUT_SHORT);
     int httpCode = http.GET();
 
     if (httpCode == HTTP_CODE_OK) {

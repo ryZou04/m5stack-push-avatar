@@ -1,4 +1,4 @@
-#include <M5CoreS3.h>
+#include <M5Unified.h>
 #include "queue_manager.h"
 #include "globals.h"
 #include "playback_service.h"
