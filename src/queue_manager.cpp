@@ -5,8 +5,14 @@
 #include "face_service.h"
 
 void enqueueAudioTask(const AudioTask& task) {
-    audioQueue.push(task);
-    processAudioQueue();
+    // 再生中なら優先度キューに積んで完了後に再生
+    if (isPlaying) {
+        audioQueue.push(task);
+        return;
+    }
+    // 再生中でなければ即座にダウンロードキューへ
+    startPlayback(task);
+    last_played_voice_id = task.voice_id;
 }
 
 void notifyPlaybackFinished() {
@@ -19,10 +25,7 @@ void notifyPlaybackFinished() {
     processAudioQueue();
 
     if (!isPlaying) {
-        setMouthOpen(0.0f);  
-        setFaceExpression(FACE_IDLE);
+        setMouthOpen(0.0f);
         micResumeRequested = true;
-        micResumeAtMs = millis() + 2000;
-        
     }
 }

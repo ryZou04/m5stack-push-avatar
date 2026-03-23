@@ -6,8 +6,8 @@ uint8_t* currentWavData = nullptr;
 size_t currentWavSize = 0;
 AudioTask currentTask;
 unsigned long playbackDeadlineMs = 0;
+unsigned long playbackStartMs = 0;
 bool micResumeRequested = false;
-unsigned long micResumeAtMs = 0;
 
 String last_played_voice_id = "";
 String interrupted_voice_id = "";

@@ -13,7 +13,7 @@ void sendChatRequest(const char* text){
     HTTPClient http;
     String chatUrl = serverUrl + "/chat";
 
-    StaticJsonDocument<512> req;
+    JsonDocument req;
     req["text"] = text;
     req["generate_voice"] = true;
 
@@ -38,7 +38,7 @@ void sendChatRequest(const char* text){
     String payload = http.getString();
     http.end();
 
-    DynamicJsonDocument resp(2048);
+    JsonDocument resp;
     if (deserializeJson(resp, payload) != DeserializationError::Ok) {
         Serial.println("[CHAT] JSON parse error");
         return;
@@ -73,7 +73,7 @@ void syncServerHour() {
     int code = http.GET();
     if (code == HTTP_CODE_OK) {
         String payload = http.getString();
-        StaticJsonDocument<64> doc;
+        JsonDocument doc;
         if (deserializeJson(doc, payload) == DeserializationError::Ok) {
             serverHour = doc["server_hour"] | -1;
             Serial.printf("[TIME] serverHour = %d\n", serverHour);

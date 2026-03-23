@@ -20,7 +20,7 @@ void checkAndEnqueueNotification() {
 
     if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
-        DynamicJsonDocument doc(512);
+        JsonDocument doc;
 
         if (deserializeJson(doc, payload) != DeserializationError::Ok) {
             http.end();

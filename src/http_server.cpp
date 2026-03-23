@@ -27,7 +27,7 @@ static void handlePlay() {
         return;
     }
 
-    DynamicJsonDocument doc(512);
+    JsonDocument doc;
     if (deserializeJson(doc, server.arg("plain")) != DeserializationError::Ok) {
         server.send(400, "application/json", "{\"success\":false,\"error\":\"json parse error\"}");
         return;
@@ -60,7 +60,7 @@ static void handleMode() {
         return;
     }
 
-    DynamicJsonDocument doc(256);
+    JsonDocument doc;
     if (deserializeJson(doc, server.arg("plain")) != DeserializationError::Ok) {
         server.send(400, "application/json", "{\"success\":false,\"error\":\"json parse error\"}");
         return;

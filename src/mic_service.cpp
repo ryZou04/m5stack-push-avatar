@@ -48,6 +48,7 @@ static uint32_t silence_start_ms = 0;
 static int16_t pre_trigger_buf[PRE_TRIGGER_BUFFER_SAMPLES];
 static size_t  pre_buf_write = 0;
 static bool    pre_buf_full  = false;
+static unsigned long micResumedAtMs = 0;
 
 static inline float calcRmsNorm(const int16_t* data, size_t n) {
     if (n == 0) return 0.0f;
@@ -92,35 +93,50 @@ static uint8_t* buildWav(int16_t* audio_data, size_t sample_count, size_t& wav_s
     memcpy(wav + sizeof(WAVHeader), audio_data, header.data_size);
     return wav;
 }
+static void applyMicConfig() {
+    auto mic_cfg = M5.Mic.config();
+    mic_cfg.sample_rate        = MIC_SAMPLE_RATE;
+    mic_cfg.stereo             = false;
+    mic_cfg.magnification      = MIC_MAGNIFICATION;
+//    mic_cfg.dma_buf_len        = MIC_DMA_BUF_LEN;
+//    mic_cfg.dma_buf_count      = MIC_DMA_BUF_COUNT;
+    mic_cfg.noise_filter_level = MIC_NOISE_FILTER_LEVEL;
+    M5.Mic.config(mic_cfg);
+}
 
 bool initMicrophone() {
     Serial.println("[MIC] Initializing microphone...");
 
+    // プリトリガーバッファをリセット（初回 & 再開時共通）
+    memset(pre_trigger_buf, 0, sizeof(pre_trigger_buf));
+    pre_buf_write = 0;
+    pre_buf_full  = false;
+
     if (M5.Speaker.isRunning()) {
         M5.Speaker.end();
-        Serial.println("[MIC] Speaker stopped before Mic.begin()");
+        vTaskDelay(pdMS_TO_TICKS(500)); 
     }
-
-    auto mic_cfg = M5.Mic.config();
-    mic_cfg.sample_rate = MIC_SAMPLE_RATE;
-    mic_cfg.stereo = false;
-    mic_cfg.magnification = 2;
-    M5.Mic.config(mic_cfg);
+    
+    applyMicConfig();
 
     if (!M5.Mic.begin()) {
         Serial.println("[MIC] Mic.begin failed");
         return false;
     }
-
-    record_buffer = (int16_t*)ps_malloc(max_samples * sizeof(int16_t));
+    
+    // 初回のみ確保（再開時はスキップ）
     if (!record_buffer) {
-        Serial.println("[MIC] Failed to allocate record buffer");
-        return false;
+        record_buffer = (int16_t*)ps_malloc(max_samples * sizeof(int16_t));
+        if (!record_buffer) {
+            Serial.println("[MIC] Failed to allocate record buffer");
+            return false;
+        }
     }
 
     Serial.printf("[MIC] Ready sr=%d maxSec=%d maxSamples=%u\n",
                   MIC_SAMPLE_RATE, MIC_MAX_RECORD_SECONDS, (unsigned)max_samples);
     mic_state = MIC_IDLE;
+
     return true;
 }
 
@@ -129,16 +145,7 @@ void updateMicrophone() {
     if (isPlaying) return;
 
     static int16_t frame[MIC_FRAME_SAMPLES];
-    if (!M5.Mic.record(frame, MIC_FRAME_SAMPLES)) return;
-
-    uint32_t waitStart = millis();
-    while (M5.Mic.isRecording()) {
-        delay(1);
-        if (millis() - waitStart > 200) {
-            Serial.println("[MIC] record timeout");
-            return;
-        }
-    }
+    if (!M5.Mic.record(frame, MIC_FRAME_SAMPLES, MIC_SAMPLE_RATE)) return;
     size_t got = MIC_FRAME_SAMPLES;
 
     float rms = calcRmsNorm(frame, got);
@@ -267,7 +274,7 @@ static bool sendAudioToServer(int16_t* audio_data, size_t sample_count) {
     String payload = http.getString();
     http.end();
 
-    DynamicJsonDocument doc(2048);
+    JsonDocument doc;
     if (deserializeJson(doc, payload) != DeserializationError::Ok) {
         Serial.println("[MIC] STT JSON parse error");
         return false;
