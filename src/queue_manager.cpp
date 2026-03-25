@@ -22,10 +22,10 @@ void notifyPlaybackFinished() {
         currentWavData = nullptr;
         currentWavSize = 0;
     }
-    processAudioQueue();
+    setMouthOpen(0.0f);
+    processAudioQueue();  
 
     if (!isPlaying) {
-        setMouthOpen(0.0f);
         micResumeRequested = true;
     }
 }

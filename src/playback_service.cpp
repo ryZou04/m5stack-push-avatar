@@ -112,15 +112,12 @@ void checkPendingPlayback() {
     // マイク停止 → スピーカー起動
     if (M5.Mic.isRunning()) {
         M5.Mic.end();
-        // mic_taskが完全に止まるまで待つ
-        while (M5.Mic.isRunning()) {
-            vTaskDelay(1);
-        }
+        vTaskDelay(pdMS_TO_TICKS(200));  // 固定200ms待機に戻す
     }
     if (!M5.Speaker.isRunning()) {
         M5.Speaker.begin();
     }
-    
+
     Serial.println("[PLAY] Mic stopped");
     M5.Speaker.setVolume(SPEAKER_VOLUME);
     M5.Speaker.playWav(currentWavData, currentWavSize);
