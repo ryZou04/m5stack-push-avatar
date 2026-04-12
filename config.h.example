@@ -15,9 +15,6 @@
 #define WIFI_PASSWORD_1 "your_hotspot_pass" 
 #define SERVER_URL_1    "http://172.20.10.*:500"
 
-// サーバー設定
-#define SERVER_URL      "http://192.168.1.x:5050"
-
 // スピーカー設定
 #define SPEAKER_VOLUME  200
 
