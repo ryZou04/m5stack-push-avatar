@@ -9,14 +9,14 @@
 // 0: 自宅
 #define WIFI_SSID_0       "your-ssid"
 #define WIFI_PASSWORD_0   "your-password"
-#define SERVER_URL_0    "http://192.168.1.**:5000"
+#define SERVER_URL_0    "http://192.168.1.**:5050"
 // 1: スマホホットスポット → スマホアプリ
 #define WIFI_SSID_1     "YunoHotspot"      
 #define WIFI_PASSWORD_1 "your_hotspot_pass" 
-#define SERVER_URL_1    "http://172.20.10.*:5000"
+#define SERVER_URL_1    "http://172.20.10.*:500"
 
 // サーバー設定
-#define SERVER_URL      "http://192.168.1.x:5000"
+#define SERVER_URL      "http://192.168.1.x:5050"
 
 // スピーカー設定
 #define SPEAKER_VOLUME  200
