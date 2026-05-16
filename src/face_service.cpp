@@ -36,7 +36,7 @@ static String         s_current_face  = "";
 static const char* sprite_for(FaceExpression expr) {
     switch (expr) {
         case FACE_IDLE:      return "idle";
-        case FACE_LISTENING: return "shy";       // closed-eye blushy = attentive
+        case FACE_LISTENING: return "listening";  // perked ears + sound waves
         case FACE_PLAYING:   return "happy";
         case FACE_THINKING:  return "question";
         case FACE_HAPPY:     return "happy";
