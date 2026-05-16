@@ -14,8 +14,9 @@ enum PlayPriority {
 struct AudioTask {
     String voice_id;
     String voice_url;
+    String emotion;  // optional; matches a faces/<name>.jpg on the bridge ("" = default)
     PlayPriority priority;
-    
+
     // priority_queue用の比較演算子
     bool operator<(const AudioTask& other) const {
         return priority < other.priority;

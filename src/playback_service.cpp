@@ -25,6 +25,10 @@ static volatile bool s_pendingReady = false;
 static uint8_t*      s_pendingData  = nullptr;
 static size_t        s_pendingSize  = 0;
 
+// Emotion key for the in-flight task; consumed by checkPendingPlayback when
+// the audio becomes ready. Playbacks are serialized so a single slot is enough.
+static String s_pendingEmotion = "";
+
 // ════════════════════════════════════════
 //  ダウンロードタスク（Core 0で動く）
 //  loop()をブロックしないための分離
@@ -82,9 +86,11 @@ void startPlayback(const AudioTask& task) {
     }
     char url[MAX_URL_LEN];
     task.voice_url.toCharArray(url, MAX_URL_LEN);
+    s_pendingEmotion = task.emotion;
     xQueueSend(s_downloadQueue, url, 0);  // ノンブロッキング
     setFaceExpression(FACE_THINKING);
-    Serial.printf("[PLAY] Queued for download: %s\n", url);
+    Serial.printf("[PLAY] Queued for download: %s (emotion=%s)\n",
+                  url, task.emotion.c_str());
 }
 
 // ════════════════════════════════════════
@@ -121,7 +127,15 @@ void checkPendingPlayback() {
     Serial.println("[PLAY] Mic stopped");
     M5.Speaker.setVolume(SPEAKER_VOLUME);
     M5.Speaker.playWav(currentWavData, currentWavSize);
-    setFaceExpression(FACE_PLAYING);
+
+    // Bridge-supplied emotion overrides the default FACE_PLAYING sprite so 朵朵's
+    // face matches the response tone (happy/sad/shy/surprised/...).
+    if (s_pendingEmotion.length() > 0) {
+        setFaceByName(s_pendingEmotion.c_str());
+        s_pendingEmotion = "";
+    } else {
+        setFaceExpression(FACE_PLAYING);
+    }
 
     lipSyncOffset = WAV_HEADER_SIZE;
     lastLipMs     = 0;

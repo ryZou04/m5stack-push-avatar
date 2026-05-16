@@ -34,6 +34,7 @@ static void handlePlay() {
     }
 
     const char* voice_url = doc["voice_url"] | "";
+    const char* emotion   = doc["emotion"]   | "";
     if (strlen(voice_url) == 0) {
         server.send(400, "application/json", "{\"success\":false,\"error\":\"voice_url required\"}");
         return;
@@ -42,10 +43,11 @@ static void handlePlay() {
     AudioTask task;
     task.voice_id  = String("mcp_") + String(millis());
     task.voice_url = String(voice_url);
+    task.emotion   = String(emotion);
     task.priority  = PRIORITY_NORMAL;
     enqueueAudioTask(task);
 
-    Serial.printf("[HTTP] POST /play -> queued: %s\n", voice_url);
+    Serial.printf("[HTTP] POST /play -> queued: %s (emotion=%s)\n", voice_url, emotion);
     server.send(200, "application/json", "{\"success\":true}");
 }
 
