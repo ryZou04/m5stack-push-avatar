@@ -1,21 +1,18 @@
 #pragma once
-#include <Avatar.h>
+#include <stdint.h>
 
-using namespace m5avatar;
-
-// 外部からアクセスできるようにグローバル宣言
-extern Avatar avatar;
-
-// 表情の種類
+// Mechanical states. The bridge may also push a specific emotion name via
+// setFaceByName() (e.g. "surprised", "sad", "shy") to override the default
+// mapping when responding.
 enum FaceExpression {
-    FACE_IDLE      = 0,  // 待機
-    FACE_LISTENING = 1,  // 聞き取り中
-    FACE_PLAYING   = 2,  // 音声再生中（口パク）
-    FACE_THINKING  = 3,  // AI処理中
-    FACE_HAPPY     = 4,  // 嬉しい
+    FACE_IDLE      = 0,
+    FACE_LISTENING = 1,
+    FACE_PLAYING   = 2,
+    FACE_THINKING  = 3,
+    FACE_HAPPY     = 4,
 };
 
 void initFace();
 void setFaceExpression(FaceExpression expr);
-void setMouthOpen(float ratio);  // 0.0〜1.0 口パク用
-void updateIdleFaceByTime();
+void setFaceByName(const char* name);  // emotion-keyed sprite (e.g. "happy", "shy")
+void setMouthOpen(float ratio);        // no-op in bitmap mode; kept for API compat

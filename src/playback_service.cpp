@@ -142,7 +142,7 @@ void updateLipSync() {
 
     if (lipSyncOffset < WAV_HEADER_SIZE) lipSyncOffset = WAV_HEADER_SIZE;
     if (lipSyncOffset >= currentWavSize) {
-        avatar.setMouthOpenRatio(0.0f);
+        setMouthOpen(0.0f);
         return;
     }
 
@@ -150,7 +150,7 @@ void updateLipSync() {
     size_t remainBytes = currentWavSize - lipSyncOffset;
     size_t samples = min((size_t)LIPSYNC_CHUNK_SAMPLES, remainBytes / sizeof(int16_t));
     if (samples == 0) {
-        avatar.setMouthOpenRatio(0.0f);
+        setMouthOpen(0.0f);
         return;
     }
 
@@ -159,7 +159,7 @@ void updateLipSync() {
         float v = (float)pcm[i] / 32768.0f;
         sum += v * v;
     }
-    avatar.setMouthOpenRatio(constrain(sqrtf(sum / samples) * 8.0f, 0.0f, 1.0f));
+    setMouthOpen(constrain(sqrtf(sum / samples) * 8.0f, 0.0f, 1.0f));
     lipSyncOffset += samples * sizeof(int16_t);
 }
 
@@ -212,7 +212,7 @@ bool downloadVoice(const String& url, uint8_t** outData, size_t* outSize) {
 void processAudioQueue() {
     if (isPlaying) return;
 
-    avatar.setMouthOpenRatio(0.0f);
+    setMouthOpen(0.0f);
 
     if (audioQueue.empty()) {
         setFaceExpression(FACE_IDLE);
